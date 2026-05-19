@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutoriel Docs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #000091;
+      --blue-light: #e8e8f8;
+      --text: #1a1a1a;
+      --muted: #666;
+      --border: #ddd;
+    }
+
+    body {
+      font-family: 'Marianne', 'Segoe UI', system-ui, sans-serif;
+      background: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      color: var(--text);
+    }
+
+    /* ── Barre haute ── */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--blue);
+      color: #fff;
+      padding: 8px 14px;
+      flex-shrink: 0;
+    }
+    #toolbar .logo { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+    #toolbar a {
+      margin-left: auto;
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      padding: 5px 11px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,.3);
+      white-space: nowrap;
+    }
+    #toolbar a:hover { background: rgba(255,255,255,.28); }
+
+    /* ── Loader ── */
+    #loader {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #ddd;
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Erreur ── */
+    #error {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 30px;
+      text-align: center;
+    }
+    #error h2 { color: var(--blue); font-size: 16px; }
+    #error p  { color: var(--muted); font-size: 13px; max-width: 380px; line-height: 1.6; }
+    #error a.btn {
+      display: inline-block;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      padding: 9px 20px;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* ── Contenu du document ── */
+    #doc-content {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px 40px;
+    }
+
+    /* Titre */
+    #doc-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--blue);
+      margin-bottom: 6px;
+      line-height: 1.2;
+    }
+    #doc-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--blue-light);
+    }
+
+    /* Rendu Markdown en HTML */
+    #doc-body h1 { font-size: 22px; font-weight: 700; color: var(--blue); margin: 28px 0 12px; }
+    #doc-body h2 { font-size: 18px; font-weight: 700; color: var(--blue); margin: 24px 0 10px; padding-bottom: 4px; border-bottom: 1px solid var(--blue-light); }
+    #doc-body h3 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; }
+    #doc-body p  { font-size: 14px; line-height: 1.75; margin-bottom: 14px; color: #333; }
+    #doc-body ul, #doc-body ol { margin: 0 0 14px 22px; }
+    #doc-body li { font-size: 14px; line-height: 1.75; margin-bottom: 4px; }
+    #doc-body strong { font-weight: 700; }
+    #doc-body em { font-style: italic; }
+    #doc-body code {
+      background: #f4f4f8;
+      border: 1px solid #e0e0ec;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    #doc-body pre {
+      background: #f4f4f8;
+      border: 1px solid #e0e0ec;
+      border-radius: 6px;
+      padding: 14px;
+      overflow-x: auto;
+      margin-bottom: 14px;
+    }
+    #doc-body pre code { background: none; border: none; padding: 0; }
+    #doc-body blockquote {
+      border-left: 4px solid var(--blue);
+      background: var(--blue-light);
+      margin: 0 0 14px;
+      padding: 10px 16px;
+      border-radius: 0 6px 6px 0;
+    }
+    #doc-body blockquote p { margin: 0; color: var(--blue); font-weight: 500; }
+    #doc-body a { color: var(--blue); }
+    #doc-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    #doc-body table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+    #doc-body th { background: var(--blue); color: #fff; padding: 8px 12px; text-align: left; }
+    #doc-body td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    #doc-body tr:nth-child(even) td { background: var(--blue-light); }
+    #doc-body img { max-width: 100%; border-radius: 6px; margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="logo">📄 Tutoriel · Docs Numériques</span>
+  <a href="https://docs.numerique.gouv.fr/docs/f3431866-8c18-4848-9524-e5398e0850f6/"
+     target="_blank" rel="noopener">↗ Ouvrir dans un onglet</a>
+</div>
+
+<div id="loader">
+  <div class="spinner"></div>
+  <p>Récupération du document…</p>
+</div>
+
+<div id="error">
+  <div style="font-size:48px">📄</div>
+  <h2 id="error-title">Impossible de charger le document</h2>
+  <p id="error-msg">L'API de docs.numerique.gouv.fr n'a pas retourné le contenu. Le document est peut-être privé ou nécessite une authentification.</p>
+  <a class="btn"
+     href="https://docs.numerique.gouv.fr/docs/f3431866-8c18-4848-9524-e5398e0850f6/"
+     target="_blank" rel="noopener">Ouvrir le tutoriel →</a>
+</div>
+
+<div id="doc-content">
+  <div id="doc-title"></div>
+  <div id="doc-meta"></div>
+  <div id="doc-body"></div>
+</div>
+
+<!-- Marked.js pour convertir le Markdown en HTML -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script>
+  const DOC_ID  = 'f3431866-8c18-4848-9524-e5398e0850f6';
+  const API_URL = 'https://docs.numerique.gouv.fr/api/documents.info';
+
+  async function loadDocument() {
+    try {
+      // Tentative 1 : API Outline (POST JSON)
+      let res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ id: DOC_ID })
+      });
+
+      if (!res.ok) {
+        // Tentative 2 : GET avec query param
+        res = await fetch(`${API_URL}?id=${DOC_ID}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+      }
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+
+      // Outline renvoie { data: { title, text, updatedAt, ... } }
+      const doc = data.data || data;
+      if (!doc || !doc.text) throw new Error('Contenu vide');
+
+      renderDocument(doc);
+
+    } catch (err) {
+      console.error('API error:', err);
+      showError(err.message);
+    }
+  }
+
+  function renderDocument(doc) {
+    document.getElementById('doc-title').textContent = doc.title || 'Tutoriel';
+
+    // Formatage de la date
+    let meta = '';
+    if (doc.updatedAt) {
+      const d = new Date(doc.updatedAt);
+      meta = `Mis à jour le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+    }
+    if (doc.collaborators?.length) {
+      meta += ` · ${doc.collaborators.length} contributeur(s)`;
+    }
+    document.getElementById('doc-meta').textContent = meta;
+
+    // Rendu Markdown → HTML
+    marked.setOptions({ breaks: true, gfm: true });
+    document.getElementById('doc-body').innerHTML = marked.parse(doc.text);
+
+    // Ouvrir les liens dans un nouvel onglet
+    document.querySelectorAll('#doc-body a').forEach(a => {
+      a.target = '_blank';
+      a.rel = 'noopener';
+    });
+
+    hide('loader');
+    show('doc-content');
+  }
+
+  function showError(msg) {
+    hide('loader');
+    document.getElementById('error-msg').textContent =
+      `L'API n'a pas pu retourner le contenu (${msg}). Le document est peut-être privé ou nécessite une authentification.`;
+    show('error', 'flex');
+  }
+
+  function show(id, display = 'flex') {
+    document.getElementById(id).style.display = display;
+  }
+  function hide(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+
+  loadDocument();
+</script>
+</body>
+</html>
