@@ -25,7 +25,6 @@
       color: var(--text);
     }
 
-    /* ── Barre haute ── */
     #toolbar {
       display: flex;
       align-items: center;
@@ -49,7 +48,6 @@
     }
     #toolbar a:hover { background: rgba(255,255,255,.28); }
 
-    /* ── Loader ── */
     #loader {
       flex: 1;
       display: flex;
@@ -68,7 +66,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Erreur ── */
     #error {
       display: none;
       flex: 1;
@@ -92,7 +89,6 @@
       font-weight: 600;
     }
 
-    /* ── Contenu du document ── */
     #doc-content {
       display: none;
       flex: 1;
@@ -100,7 +96,6 @@
       padding: 24px 32px 40px;
     }
 
-    /* Titre */
     #doc-title {
       font-size: 26px;
       font-weight: 800;
@@ -116,7 +111,6 @@
       border-bottom: 2px solid var(--blue-light);
     }
 
-    /* Rendu Markdown en HTML */
     #doc-body h1 { font-size: 22px; font-weight: 700; color: var(--blue); margin: 28px 0 12px; }
     #doc-body h2 { font-size: 18px; font-weight: 700; color: var(--blue); margin: 24px 0 10px; padding-bottom: 4px; border-bottom: 1px solid var(--blue-light); }
     #doc-body h3 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; }
@@ -169,13 +163,13 @@
 
 <div id="loader">
   <div class="spinner"></div>
-  <p>Récupération du document…</p>
+  <p id="loader-msg">Récupération du document…</p>
 </div>
 
 <div id="error">
   <div style="font-size:48px">📄</div>
-  <h2 id="error-title">Impossible de charger le document</h2>
-  <p id="error-msg">L'API de docs.numerique.gouv.fr n'a pas retourné le contenu. Le document est peut-être privé ou nécessite une authentification.</p>
+  <h2>Impossible de charger le document</h2>
+  <p id="error-msg"></p>
   <a class="btn"
      href="https://docs.numerique.gouv.fr/docs/f3431866-8c18-4848-9524-e5398e0850f6/"
      target="_blank" rel="noopener">Ouvrir le tutoriel →</a>
@@ -187,85 +181,96 @@
   <div id="doc-body"></div>
 </div>
 
-<!-- Marked.js pour convertir le Markdown en HTML -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
   const DOC_ID  = 'f3431866-8c18-4848-9524-e5398e0850f6';
-  const API_URL = 'https://docs.numerique.gouv.fr/api/documents.info';
+  const TARGET  = 'https://docs.numerique.gouv.fr/api/documents.info';
 
-  async function loadDocument() {
-    try {
-      // Tentative 1 : API Outline (POST JSON)
-      let res = await fetch(API_URL, {
+  // Plusieurs proxies CORS publics, tentés dans l'ordre
+  const PROXIES = [
+    async () => {
+      // corsproxy.io — enveloppe l'URL cible
+      const url = `https://corsproxy.io/?${encodeURIComponent(TARGET)}`;
+      const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: DOC_ID })
       });
-
-      if (!res.ok) {
-        // Tentative 2 : GET avec query param
-        res = await fetch(`${API_URL}?id=${DOC_ID}`, {
-          headers: { 'Accept': 'application/json' }
-        });
-      }
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = await res.json();
-
-      // Outline renvoie { data: { title, text, updatedAt, ... } }
-      const doc = data.data || data;
-      if (!doc || !doc.text) throw new Error('Contenu vide');
-
-      renderDocument(doc);
-
-    } catch (err) {
-      console.error('API error:', err);
-      showError(err.message);
+      return res.json();
+    },
+    async () => {
+      // allorigins — renvoie le body dans contents
+      const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(TARGET)}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: DOC_ID })
+      });
+      return res.json();
+    },
+    async () => {
+      // Tentative directe en dernier recours (fonctionne si CORS levé côté serveur)
+      const res = await fetch(TARGET, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: DOC_ID })
+      });
+      return res.json();
     }
+  ];
+
+  async function loadDocument() {
+    let lastErr = '';
+    for (let i = 0; i < PROXIES.length; i++) {
+      try {
+        setLoaderMsg(i === 0 ? 'Récupération du document…'
+                   : i === 1 ? 'Tentative via proxy alternatif…'
+                             : 'Dernière tentative…');
+        const data = await PROXIES[i]();
+        const doc  = data?.data || data;
+        if (doc?.text) { renderDocument(doc); return; }
+        lastErr = 'Contenu vide ou document privé';
+      } catch (e) {
+        lastErr = e.message;
+      }
+    }
+    showError(lastErr);
   }
 
   function renderDocument(doc) {
     document.getElementById('doc-title').textContent = doc.title || 'Tutoriel';
 
-    // Formatage de la date
     let meta = '';
     if (doc.updatedAt) {
       const d = new Date(doc.updatedAt);
       meta = `Mis à jour le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
     }
-    if (doc.collaborators?.length) {
-      meta += ` · ${doc.collaborators.length} contributeur(s)`;
-    }
     document.getElementById('doc-meta').textContent = meta;
 
-    // Rendu Markdown → HTML
     marked.setOptions({ breaks: true, gfm: true });
     document.getElementById('doc-body').innerHTML = marked.parse(doc.text);
 
-    // Ouvrir les liens dans un nouvel onglet
     document.querySelectorAll('#doc-body a').forEach(a => {
-      a.target = '_blank';
-      a.rel = 'noopener';
+      a.target = '_blank'; a.rel = 'noopener';
     });
 
     hide('loader');
-    show('doc-content');
+    show('doc-content', 'block');
   }
 
   function showError(msg) {
     hide('loader');
     document.getElementById('error-msg').textContent =
-      `L'API n'a pas pu retourner le contenu (${msg}). Le document est peut-être privé ou nécessite une authentification.`;
+      `Tous les proxies ont échoué (${msg}). Le document nécessite peut-être une authentification.`;
     show('error', 'flex');
   }
 
-  function show(id, display = 'flex') {
-    document.getElementById(id).style.display = display;
+  function setLoaderMsg(msg) {
+    document.getElementById('loader-msg').textContent = msg;
   }
-  function hide(id) {
-    document.getElementById(id).style.display = 'none';
-  }
+
+  function show(id, display = 'flex') { document.getElementById(id).style.display = display; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
 
   loadDocument();
 </script>
